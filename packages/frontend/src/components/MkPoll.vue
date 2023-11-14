@@ -1,7 +1,12 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div :class="{ [$style.done]: closed || isVoted }">
 	<ul :class="$style.choices">
-		<li v-for="(choice, i) in note.poll.choices" :key="i" :class="[$style.choice, { [$style.voted]: choice.voted }]" @click="vote(i)">
+		<li v-for="(choice, i) in note.poll.choices" :key="i" :class="$style.choice" @click="vote(i)">
 			<div :class="$style.bg" :style="{ 'width': `${showResult ? (choice.votes / total * 100) : 0}%` }"></div>
 			<span :class="$style.fg">
 				<template v-if="choice.isVoted"><i class="ti ti-check" style="margin-right: 4px; color: var(--accent);"></i></template>
@@ -23,15 +28,15 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import * as misskey from 'misskey-js';
-import { sum } from '@/scripts/array';
-import { pleaseLogin } from '@/scripts/please-login';
-import * as os from '@/os';
-import { i18n } from '@/i18n';
-import { useInterval } from '@/scripts/use-interval';
+import * as Misskey from 'misskey-js';
+import { sum } from '@/scripts/array.js';
+import { pleaseLogin } from '@/scripts/please-login.js';
+import * as os from '@/os.js';
+import { i18n } from '@/i18n.js';
+import { useInterval } from '@/scripts/use-interval.js';
 
 const props = defineProps<{
-	note: misskey.entities.Note;
+	note: Misskey.entities.Note;
 	readOnly?: boolean;
 }>();
 

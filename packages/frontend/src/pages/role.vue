@@ -1,9 +1,14 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <MkStickyContainer>
 	<template #header><MkPageHeader v-model:tab="tab" :tabs="headerTabs"/></template>
 	<MKSpacer v-if="!(typeof error === 'undefined')" :contentMax="1200">
 		<div :class="$style.root">
-			<img :class="$style.img" src="https://xn--931a.moe/assets/error.jpg" class="_ghost"/>
+			<img :class="$style.img" :src="serverErrorImageUrl" class="_ghost"/>
 			<p :class="$style.text">
 				<i class="ti ti-alert-triangle"></i>
 				{{ error }}
@@ -13,23 +18,32 @@
 	<MkSpacer v-else-if="tab === 'users'" :contentMax="1200">
 		<div class="_gaps_s">
 			<div v-if="role">{{ role.description }}</div>
-			<MkUserList :pagination="users" :extractor="(item) => item.user"/>
+			<MkUserList v-if="visiable" :pagination="users" :extractor="(item) => item.user"/>
+			<div v-else-if="!visiable" class="_fullinfo">
+				<img :src="infoImageUrl" class="_ghost"/>
+				<div>{{ i18n.ts.nothing }}</div>
+			</div>
 		</div>
 	</MkSpacer>
 	<MkSpacer v-else-if="tab === 'timeline'" :contentMax="700">
-		<MkTimeline ref="timeline" src="role" :role="props.role"/>
+		<MkTimeline v-if="visiable" ref="timeline" src="role" :role="props.role"/>
+		<div v-else-if="!visiable" class="_fullinfo">
+			<img :src="infoImageUrl" class="_ghost"/>
+			<div>{{ i18n.ts.nothing }}</div>
+		</div>
 	</MkSpacer>
 </MkStickyContainer>
 </template>
 
 <script lang="ts" setup>
 import { computed, watch } from 'vue';
-import * as os from '@/os';
+import * as os from '@/os.js';
 import MkUserList from '@/components/MkUserList.vue';
-import { definePageMetadata } from '@/scripts/page-metadata';
-import { i18n } from '@/i18n';
+import { definePageMetadata } from '@/scripts/page-metadata.js';
+import { i18n } from '@/i18n.js';
 import MkTimeline from '@/components/MkTimeline.vue';
-import { instanceName } from '@/config';
+import { instanceName } from '@/config.js';
+import { serverErrorImageUrl, infoImageUrl } from '@/instance.js';
 
 const props = withDefaults(defineProps<{
 	role: string;
@@ -41,6 +55,7 @@ const props = withDefaults(defineProps<{
 let tab = $ref(props.initialTab);
 let role = $ref();
 let error = $ref();
+let visiable = $ref(false);
 
 watch(() => props.role, () => {
 	os.api('roles/show', {
@@ -48,6 +63,7 @@ watch(() => props.role, () => {
 	}).then(res => {
 		role = res;
 		document.title = `${role?.name} | ${instanceName}`;
+		visiable = res.isExplorable && res.isPublic;
 	}).catch((err) => {
 		if (err.code === 'NO_SUCH_ROLE') {
 			error = i18n.ts.noRole;

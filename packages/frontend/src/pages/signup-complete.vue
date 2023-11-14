@@ -1,5 +1,10 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
-<div :class="$style.root">
+<div>
 	<MkAnimBg style="position: fixed; top: 0;"/>
 	<div :class="$style.formContainer">
 		<form :class="$style.form" class="_panel" @submit.prevent="submit()">
@@ -23,9 +28,9 @@
 import { } from 'vue';
 import MkButton from '@/components/MkButton.vue';
 import MkAnimBg from '@/components/MkAnimBg.vue';
-import { login } from '@/account';
-import { i18n } from '@/i18n';
-import * as os from '@/os';
+import { login } from '@/account.js';
+import { i18n } from '@/i18n.js';
+import * as os from '@/os.js';
 
 let submitting = $ref(false);
 
@@ -46,16 +51,14 @@ function submit() {
 
 		os.alert({
 			type: 'error',
-			text: i18n.ts.somethingHappened,
+			title: i18n.ts.somethingHappened,
+			text: i18n.ts.signupPendingError,
 		});
 	});
 }
 </script>
 
 <style lang="scss" module>
-.root {
-}
-
 .formContainer {
 	min-height: 100svh;
 	padding: 32px 32px 64px 32px;

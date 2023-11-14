@@ -1,6 +1,11 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div
-	:class="[$style.root, { [$style.paged]: isMainColumn, [$style.naked]: naked, [$style.active]: active, [$style.isStacked]: isStacked, [$style.draghover]: draghover, [$style.dragging]: dragging, [$style.dropready]: dropready }]"
+	:class="[$style.root, { [$style.paged]: isMainColumn, [$style.naked]: naked, [$style.active]: active, [$style.draghover]: draghover, [$style.dragging]: dragging, [$style.dropready]: dropready }]"
 	@dragover.prevent.stop="onDragover"
 	@dragleave="onDragleave"
 	@drop.prevent.stop="onDrop"
@@ -12,6 +17,7 @@
 		@dragstart="onDragstart"
 		@dragend="onDragend"
 		@contextmenu.prevent.stop="onContextmenu"
+		@wheel="emit('headerWheel', $event)"
 	>
 		<svg viewBox="0 0 256 128" :class="$style.tabShape">
 			<g transform="matrix(6.2431,0,0,6.2431,-677.417,-29.3839)">
@@ -24,6 +30,9 @@
 			<template v-else><i class="ti ti-chevron-down"></i></template>
 		</button>
 		<span :class="$style.title"><slot name="header"></slot></span>
+		<svg viewBox="0 0 16 16" version="1.1" :class="$style.grabber">
+			<path fill="currentColor" d="M10 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm0-4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm-4 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5-9a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path>
+		</svg>
 		<button v-tooltip="i18n.ts.settings" :class="$style.menu" class="_button" @click.stop="showSettingsMenu"><i class="ti ti-dots"></i></button>
 	</header>
 	<div v-if="active" ref="body" :class="$style.body">
@@ -35,9 +44,9 @@
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, provide, watch } from 'vue';
 import { updateColumn, swapLeftColumn, swapRightColumn, swapUpColumn, swapDownColumn, stackLeftColumn, popRightColumn, removeColumn, swapColumn, Column } from './deck-store';
-import * as os from '@/os';
-import { i18n } from '@/i18n';
-import { MenuItem } from '@/types/menu';
+import * as os from '@/os.js';
+import { i18n } from '@/i18n.js';
+import { MenuItem } from '@/types/menu.js';
 
 provide('shouldHeaderThin', true);
 provide('shouldOmitHeaderTitle', true);
@@ -48,10 +57,15 @@ const props = withDefaults(defineProps<{
 	isStacked?: boolean;
 	naked?: boolean;
 	menu?: MenuItem[];
+	refresher?: () => Promise<void>;
 }>(), {
 	isStacked: false,
 	naked: false,
 });
+
+const emit = defineEmits<{
+	(ev: 'headerWheel', ctx: WheelEvent): void;
+}>();
 
 let body = $shallowRef<HTMLDivElement | null>();
 
@@ -103,11 +117,12 @@ function getMenu() {
 				width: {
 					type: 'number',
 					label: i18n.ts.width,
+					description: i18n.ts._deck.usedAsMinWidthWhenFlexible,
 					default: props.column.width,
 				},
 				flexible: {
 					type: 'boolean',
-					label: i18n.ts.flexible,
+					label: i18n.ts._deck.flexible,
 					default: props.column.flexible,
 				},
 			});
@@ -167,6 +182,18 @@ function getMenu() {
 	if (props.menu) {
 		items.unshift(null);
 		items = props.menu.concat(items);
+	}
+
+	if (props.refresher) {
+		items = [{
+			icon: 'ti ti-refresh',
+			text: i18n.ts.reload,
+			action: () => {
+				if (props.refresher) {
+					props.refresher();
+				}
+			},
+		}, ...items];
 	}
 
 	return items;
@@ -296,9 +323,12 @@ function onDrop(ev) {
 		}
 
 		> .body {
+			background: transparent !important;
+
 			&::-webkit-scrollbar-track {
-				background: inherit;
+				background: transparent;
 			}
+			scrollbar-color: var(--scrollbarHandle) transparent;
 		}
 	}
 
@@ -306,9 +336,13 @@ function onDrop(ev) {
 		background: var(--bg) !important;
 
 		> .body {
+			background: var(--bg) !important;
+			overflow-y: scroll !important;
+
 			&::-webkit-scrollbar-track {
 				background: inherit;
 			}
+			scrollbar-color: var(--scrollbarHandle) transparent;
 		}
 	}
 }
@@ -360,32 +394,32 @@ function onDrop(ev) {
 	z-index: 1;
 	width: var(--deckColumnHeaderHeight);
 	line-height: var(--deckColumnHeaderHeight);
-	color: var(--faceTextButton);
-
-	&:hover {
-		color: var(--faceTextButtonHover);
-	}
-
-	&:active {
-		color: var(--faceTextButtonActive);
-	}
 }
 
 .toggleActive {
 	margin-left: -16px;
 }
 
-.menu {
+.grabber {
 	margin-left: auto;
+	margin-right: 10px;
+	padding: 8px 8px;
+	box-sizing: border-box;
+	height: var(--deckColumnHeaderHeight);
+	cursor: move;
+	user-select: none;
+	opacity: 0.5;
+}
+
+.menu {
 	margin-right: -16px;
 }
 
 .body {
 	height: calc(100% - var(--deckColumnHeaderHeight));
 	overflow-y: auto;
-	overflow-x: hidden; // Safari does not supports clip
 	overflow-x: clip;
-	-webkit-overflow-scrolling: touch;
+	overscroll-behavior-y: contain;
 	box-sizing: border-box;
 	container-type: size;
 	background-color: var(--bg);
@@ -393,5 +427,6 @@ function onDrop(ev) {
 	&::-webkit-scrollbar-track {
 		background: var(--panel);
 	}
+	scrollbar-color: var(--scrollbarHandle) var(--panel);
 }
 </style>

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div class="_gaps">
 	<div :class="$style.status">
@@ -28,8 +33,8 @@
 		<template #icon><i class="ti ti-alert-triangle"></i></template>
 		<template #label>Errored instances</template>
 		<template #suffix>({{ number(jobs.reduce((a, b) => a + b[1], 0)) }} jobs)</template>
-		
-		<div :class="$style.jobs">
+
+		<div>
 			<div v-if="jobs.length > 0">
 				<div v-for="job in jobs" :key="job[0]">
 					<MkA :to="`/instance-info/${job[0]}`" behavior="window">{{ job[0] }}</MkA>
@@ -45,10 +50,10 @@
 <script lang="ts" setup>
 import { markRaw, onMounted, onUnmounted, ref } from 'vue';
 import XChart from './queue.chart.chart.vue';
-import number from '@/filters/number';
-import * as os from '@/os';
-import { useStream } from '@/stream';
-import { i18n } from '@/i18n';
+import number from '@/filters/number.js';
+import * as os from '@/os.js';
+import { useStream } from '@/stream.js';
+import { i18n } from '@/i18n.js';
 import MkFolder from '@/components/MkFolder.vue';
 
 const connection = markRaw(useStream().useChannel('queueStats'));
@@ -106,7 +111,7 @@ onMounted(() => {
 	connection.on('stats', onStats);
 	connection.on('statsLog', onStatsLog);
 	connection.send('requestLog', {
-		id: Math.random().toString().substr(2, 8),
+		id: Math.random().toString().substring(2, 10),
 		length: 200,
 	});
 });
@@ -149,8 +154,5 @@ onUnmounted(() => {
 .statusLabel {
 	font-size: 80%;
 	opacity: 0.6;
-}
-
-.jobs {
 }
 </style>

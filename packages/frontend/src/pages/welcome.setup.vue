@@ -1,5 +1,10 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
-<div :class="$style.root">
+<div>
 	<MkAnimBg style="position: fixed; top: 0;"/>
 	<div :class="$style.formContainer">
 		<form :class="$style.form" class="_panel" @submit.prevent="submit()">
@@ -33,10 +38,10 @@
 import { } from 'vue';
 import MkButton from '@/components/MkButton.vue';
 import MkInput from '@/components/MkInput.vue';
-import { host, version } from '@/config';
-import * as os from '@/os';
-import { login } from '@/account';
-import { i18n } from '@/i18n';
+import { host, version } from '@/config.js';
+import * as os from '@/os.js';
+import { login } from '@/account.js';
+import { i18n } from '@/i18n.js';
 import MkAnimBg from '@/components/MkAnimBg.vue';
 
 let username = $ref('');
@@ -64,9 +69,6 @@ function submit() {
 </script>
 
 <style lang="scss" module>
-.root {
-}
-
 .formContainer {
 	min-height: 100svh;
 	padding: 32px 32px 64px 32px;

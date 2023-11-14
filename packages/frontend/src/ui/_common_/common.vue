@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <component
 	:is="popup.component"
@@ -10,7 +15,15 @@
 <XUpload v-if="uploads.length > 0"/>
 
 <TransitionGroup
-	tag="div" :class="[$style.notifications, $style[`notificationsPosition-${defaultStore.state.notificationPosition}`], $style[`notificationsStackAxis-${defaultStore.state.notificationStackAxis}`]]"
+	tag="div"
+	:class="[$style.notifications, {
+		[$style.notificationsPosition_leftTop]: defaultStore.state.notificationPosition === 'leftTop',
+		[$style.notificationsPosition_leftBottom]: defaultStore.state.notificationPosition === 'leftBottom',
+		[$style.notificationsPosition_rightTop]: defaultStore.state.notificationPosition === 'rightTop',
+		[$style.notificationsPosition_rightBottom]: defaultStore.state.notificationPosition === 'rightBottom',
+		[$style.notificationsStackAxis_vertical]: defaultStore.state.notificationStackAxis === 'vertical',
+		[$style.notificationsStackAxis_horizontal]: defaultStore.state.notificationStackAxis === 'horizontal',
+	}]"
 	:moveClass="defaultStore.state.animation ? $style.transition_notification_move : ''"
 	:enterActiveClass="defaultStore.state.animation ? $style.transition_notification_enterActive : ''"
 	:leaveActiveClass="defaultStore.state.animation ? $style.transition_notification_leaveActive : ''"
@@ -33,29 +46,31 @@
 
 <script lang="ts" setup>
 import { defineAsyncComponent, ref } from 'vue';
-import * as misskey from 'misskey-js';
+import * as Misskey from 'misskey-js';
 import { swInject } from './sw-inject';
 import XNotification from './notification.vue';
-import { popups, pendingApiRequestsCount } from '@/os';
-import { uploads } from '@/scripts/upload';
-import * as sound from '@/scripts/sound';
-import { $i } from '@/account';
-import { useStream } from '@/stream';
-import { i18n } from '@/i18n';
-import { defaultStore } from '@/store';
+import { popups, pendingApiRequestsCount } from '@/os.js';
+import { uploads } from '@/scripts/upload.js';
+import * as sound from '@/scripts/sound.js';
+import { $i } from '@/account.js';
+import { useStream } from '@/stream.js';
+import { i18n } from '@/i18n.js';
+import { defaultStore } from '@/store.js';
+import { globalEvents } from '@/events';
 
 const XStreamIndicator = defineAsyncComponent(() => import('./stream-indicator.vue'));
 const XUpload = defineAsyncComponent(() => import('./upload.vue'));
 
 const dev = _DEV_;
 
-let notifications = $ref<misskey.entities.Notification[]>([]);
+let notifications = $ref<Misskey.entities.Notification[]>([]);
 
-function onNotification(notification) {
-	if ($i.mutingNotificationTypes.includes(notification.type)) return;
-
+function onNotification(notification: Misskey.entities.Notification, isClient = false) {
 	if (document.visibilityState === 'visible') {
-		useStream().send('readNotification');
+		if (!isClient && notification.type !== 'test') {
+			// サーバーサイドのテスト通知の際は自動で既読をつけない（テストできないので）
+			useStream().send('readNotification');
+		}
 
 		notifications.unshift(notification);
 		window.setTimeout(() => {
@@ -73,6 +88,7 @@ function onNotification(notification) {
 if ($i) {
 	const connection = useStream().useChannel('main', null, 'UI');
 	connection.on('notification', onNotification);
+	globalEvents.on('clientNotification', notification => onNotification(notification, true));
 
 	//#region Listen message from SW
 	if ('serviceWorker' in navigator) {
@@ -103,31 +119,31 @@ if ($i) {
 	pointer-events: none;
 	display: flex;
 
-	&.notificationsPosition-leftTop {
+	&.notificationsPosition_leftTop {
 		top: var(--margin);
 		left: 0;
 	}
 
-	&.notificationsPosition-rightTop {
+	&.notificationsPosition_rightTop {
 		top: var(--margin);
 		right: 0;
 	}
 
-	&.notificationsPosition-leftBottom {
+	&.notificationsPosition_leftBottom {
 		bottom: calc(var(--minBottomSpacing) + var(--margin));
 		left: 0;
 	}
 
-	&.notificationsPosition-rightBottom {
+	&.notificationsPosition_rightBottom {
 		bottom: calc(var(--minBottomSpacing) + var(--margin));
 		right: 0;
 	}
 
-	&.notificationsStackAxis-vertical {
+	&.notificationsStackAxis_vertical {
 		width: 250px;
 
-		&.notificationsPosition-leftTop,
-		&.notificationsPosition-rightTop {
+		&.notificationsPosition_leftTop,
+		&.notificationsPosition_rightTop {
 			flex-direction: column;
 
 			.notification {
@@ -137,8 +153,8 @@ if ($i) {
 			}
 		}
 
-		&.notificationsPosition-leftBottom,
-		&.notificationsPosition-rightBottom {
+		&.notificationsPosition_leftBottom,
+		&.notificationsPosition_rightBottom {
 			flex-direction: column-reverse;
 
 			.notification {
@@ -149,11 +165,11 @@ if ($i) {
 		}
 	}
 
-	&.notificationsStackAxis-horizontal {
+	&.notificationsStackAxis_horizontal {
 		width: 100%;
 
-		&.notificationsPosition-leftTop,
-		&.notificationsPosition-leftBottom {
+		&.notificationsPosition_leftTop,
+		&.notificationsPosition_leftBottom {
 			flex-direction: row;
 
 			.notification {
@@ -163,8 +179,8 @@ if ($i) {
 			}
 		}
 
-		&.notificationsPosition-rightTop,
-		&.notificationsPosition-rightBottom {
+		&.notificationsPosition_rightTop,
+		&.notificationsPosition_rightBottom {
 			flex-direction: row-reverse;
 
 			.notification {

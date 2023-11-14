@@ -1,10 +1,23 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <MkModal ref="modal" :preferType="'dialog'" :zPriority="'high'" @click="done(true)" @closed="emit('closed')">
 	<div :class="$style.root">
 		<div v-if="icon" :class="$style.icon">
 			<i :class="icon"></i>
 		</div>
-		<div v-else-if="!input && !select" :class="[$style.icon, $style['type_' + type]]">
+		<div
+			v-else-if="!input && !select"
+			:class="[$style.icon, {
+				[$style.type_success]: type === 'success',
+				[$style.type_error]: type === 'error',
+				[$style.type_warning]: type === 'warning',
+				[$style.type_info]: type === 'info',
+			}]"
+		>
 			<i v-if="type === 'success'" :class="$style.iconInner" class="ti ti-check"></i>
 			<i v-else-if="type === 'error'" :class="$style.iconInner" class="ti ti-circle-x"></i>
 			<i v-else-if="type === 'warning'" :class="$style.iconInner" class="ti ti-alert-triangle"></i>
@@ -48,7 +61,7 @@ import MkModal from '@/components/MkModal.vue';
 import MkButton from '@/components/MkButton.vue';
 import MkInput from '@/components/MkInput.vue';
 import MkSelect from '@/components/MkSelect.vue';
-import { i18n } from '@/i18n';
+import { i18n } from '@/i18n.js';
 
 type Input = {
 	type: 'text' | 'number' | 'password' | 'email' | 'url' | 'date' | 'time' | 'search' | 'datetime-local';
@@ -147,6 +160,7 @@ async function ok() {
 function cancel() {
 	done(true);
 }
+
 /*
 function onBgClick() {
 	if (props.cancelableByBgClick) cancel();

@@ -1,11 +1,16 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div class="_gaps_m">
 	<FormSection v-if="!fetching" first>
 		<template #label>{{ i18n.ts.usageAmount }}</template>
 
 		<div class="_gaps_m">
-			<div class="uawsfosz">
-				<div class="meter"><div :style="meterStyle"></div></div>
+			<div>
+				<div :class="$style.meter"><div :class="$style.meterValue" :style="meterStyle"></div></div>
 			</div>
 			<FormSplit>
 				<MkKeyValue>
@@ -59,13 +64,13 @@ import MkSwitch from '@/components/MkSwitch.vue';
 import FormSection from '@/components/form/section.vue';
 import MkKeyValue from '@/components/MkKeyValue.vue';
 import FormSplit from '@/components/form/split.vue';
-import * as os from '@/os';
-import bytes from '@/filters/bytes';
-import { defaultStore } from '@/store';
+import * as os from '@/os.js';
+import bytes from '@/filters/bytes.js';
+import { defaultStore } from '@/store.js';
 import MkChart from '@/components/MkChart.vue';
-import { i18n } from '@/i18n';
-import { definePageMetadata } from '@/scripts/page-metadata';
-import { $i } from '@/account';
+import { i18n } from '@/i18n.js';
+import { definePageMetadata } from '@/scripts/page-metadata.js';
+import { $i } from '@/account.js';
 
 const fetching = ref(true);
 const usage = ref<any>(null);
@@ -139,22 +144,16 @@ definePageMetadata({
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss" module>
+.meter {
+	height: 10px;
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 999px;
+	overflow: clip;
+}
 
-@use "sass:math";
-
-.uawsfosz {
-
-	> .meter {
-		$size: 12px;
-		background: rgba(0, 0, 0, 0.1);
-		border-radius: math.div($size, 2);
-		overflow: hidden;
-
-		> div {
-			height: $size;
-			border-radius: math.div($size, 2);
-		}
-	}
+.meterValue {
+	height: 100%;
+	border-radius: 999px;
 }
 </style>

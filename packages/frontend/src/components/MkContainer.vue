@@ -1,5 +1,10 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
-<div ref="rootEl" class="_panel" :class="[$style.root, { [$style.naked]: naked, [$style.thin]: thin, [$style.hideHeader]: !showHeader, [$style.scrollable]: scrollable, [$style.closed]: !showBody }]">
+<div ref="rootEl" class="_panel" :class="[$style.root, { [$style.naked]: naked, [$style.thin]: thin, [$style.scrollable]: scrollable }]">
 	<header v-if="showHeader" ref="headerEl" :class="$style.header">
 		<div :class="$style.title">
 			<span :class="$style.titleIcon"><slot name="icon"></slot></span>
@@ -34,9 +39,9 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, shallowRef, watch } from 'vue';
-import { defaultStore } from '@/store';
-import { i18n } from '@/i18n';
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { defaultStore } from '@/store.js';
+import { i18n } from '@/i18n.js';
 
 const props = withDefaults(defineProps<{
 	showHeader?: boolean;
@@ -83,13 +88,19 @@ function afterLeave(el) {
 
 const calcOmit = () => {
 	if (omitted.value || ignoreOmit.value || props.maxHeight == null) return;
+	if (!contentEl.value) return;
 	const height = contentEl.value.offsetHeight;
 	omitted.value = height > props.maxHeight;
 };
 
+const omitObserver = new ResizeObserver((entries, observer) => {
+	calcOmit();
+});
+
 onMounted(() => {
 	watch(showBody, v => {
-		const headerHeight = props.showHeader ? headerEl.value.offsetHeight : 0;
+		if (!rootEl.value) return;
+		const headerHeight = props.showHeader ? headerEl.value?.offsetHeight ?? 0 : 0;
 		rootEl.value.style.minHeight = `${headerHeight}px`;
 		if (v) {
 			rootEl.value.style.flexBasis = 'auto';
@@ -100,13 +111,15 @@ onMounted(() => {
 		immediate: true,
 	});
 
-	rootEl.value.style.setProperty('--maxHeight', props.maxHeight + 'px');
+	if (rootEl.value) rootEl.value.style.setProperty('--maxHeight', props.maxHeight + 'px');
 
 	calcOmit();
 
-	new ResizeObserver((entries, observer) => {
-		calcOmit();
-	}).observe(contentEl.value);
+	if (contentEl.value) omitObserver.observe(contentEl.value);
+});
+
+onUnmounted(() => {
+	omitObserver.disconnect();
 });
 </script>
 

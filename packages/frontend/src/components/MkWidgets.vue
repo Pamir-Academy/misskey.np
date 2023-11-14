@@ -1,7 +1,12 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div :class="$style.root">
 	<template v-if="edit">
-		<header :class="$style['edit-header']">
+		<header :class="$style.editHeader">
 			<MkSelect v-model="widgetAdderSelected" style="margin-bottom: var(--margin)" data-cy-widget-select>
 				<template #label>{{ i18n.ts.selectWidget }}</template>
 				<option v-for="widget in widgetDefs" :key="widget" :value="widget">{{ i18n.t(`_widgets.${widget}`) }}</option>
@@ -15,15 +20,15 @@
 			handle=".handle"
 			:animation="150"
 			:group="{ name: 'SortableMkWidgets' }"
-			:class="$style['edit-editing']"
+			:class="$style.editEditing"
 			@update:modelValue="v => emit('updateWidgets', v)"
 		>
 			<template #item="{element}">
-				<div :class="[$style.widget, $style['customize-container']]" data-cy-customize-container>
-					<button :class="$style['customize-container-config']" class="_button" @click.prevent.stop="configWidget(element.id)"><i class="ti ti-settings"></i></button>
-					<button :class="$style['customize-container-remove']" data-cy-customize-container-remove class="_button" @click.prevent.stop="removeWidget(element)"><i class="ti ti-x"></i></button>
+				<div :class="[$style.widget, $style.customizeContainer]" data-cy-customize-container>
+					<button :class="$style.customizeContainerConfig" class="_button" @click.prevent.stop="configWidget(element.id)"><i class="ti ti-settings"></i></button>
+					<button :class="$style.customizeContainerRemove" data-cy-customize-container-remove class="_button" @click.prevent.stop="removeWidget(element)"><i class="ti ti-x"></i></button>
 					<div class="handle">
-						<component :is="`widget-${element.name}`" :ref="el => widgetRefs[element.id] = el" class="widget" :class="$style['customize-container-handle-widget']" :widget="element" @updateProps="updateWidget(element.id, $event)"/>
+						<component :is="`widget-${element.name}`" :ref="el => widgetRefs[element.id] = el" class="widget" :class="$style.customizeContainerHandleWidget" :widget="element" @updateProps="updateWidget(element.id, $event)"/>
 					</div>
 				</div>
 			</template>
@@ -50,8 +55,8 @@ import { v4 as uuid } from 'uuid';
 import MkSelect from '@/components/MkSelect.vue';
 import MkButton from '@/components/MkButton.vue';
 import { widgets as widgetDefs } from '@/widgets';
-import * as os from '@/os';
-import { i18n } from '@/i18n';
+import * as os from '@/os.js';
+import { i18n } from '@/i18n.js';
 
 const Sortable = defineAsyncComponent(() => import('vuedraggable').then(x => x.default));
 
@@ -130,7 +135,7 @@ function onContextmenu(widget: Widget, ev: MouseEvent) {
 }
 
 .edit {
-	&-header {
+	&Header {
 		margin: 16px 0;
 
 		> * {
@@ -139,17 +144,17 @@ function onContextmenu(widget: Widget, ev: MouseEvent) {
 		}
 	}
 
-	&-editing {
+	&Editing {
 		min-height: 100px;
 	}
 }
 
-.customize-container {
+.customizeContainer {
 	position: relative;
 	cursor: move;
 
-	&-config,
-	&-remove {
+	&Config,
+	&Remove {
 		position: absolute;
 		z-index: 10000;
 		top: 8px;
@@ -160,17 +165,17 @@ function onContextmenu(widget: Widget, ev: MouseEvent) {
 		border-radius: 4px;
 	}
 
-	&-config {
+	&Config {
 		right: 8px + 8px + 32px;
 	}
 
-	&-remove {
+	&Remove {
 		right: 8px;
 	}
 
-	&-handle {
+	&Handle {
 
-		&-widget {
+		&Widget {
 			pointer-events: none;
 		}
 	}

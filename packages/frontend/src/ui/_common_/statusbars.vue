@@ -1,10 +1,14 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div :class="$style.root">
 	<div
 		v-for="x in defaultStore.reactiveState.statusbars.value" :key="x.id" :class="[$style.item, { [$style.black]: x.black,
 			[$style.verySmall]: x.size === 'verySmall',
 			[$style.small]: x.size === 'small',
-			[$style.medium]: x.size === 'medium',
 			[$style.large]: x.size === 'large',
 			[$style.veryLarge]: x.size === 'veryLarge',
 		}]"
@@ -19,7 +23,7 @@
 
 <script lang="ts" setup>
 import { defineAsyncComponent } from 'vue';
-import { defaultStore } from '@/store';
+import { defaultStore } from '@/store.js';
 const XRss = defineAsyncComponent(() => import('./statusbar-rss.vue'));
 const XFederation = defineAsyncComponent(() => import('./statusbar-federation.vue'));
 const XUserList = defineAsyncComponent(() => import('./statusbar-user-list.vue'));

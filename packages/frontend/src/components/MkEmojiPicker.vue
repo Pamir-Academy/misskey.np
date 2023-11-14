@@ -1,7 +1,13 @@
+<!--
+SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 <template>
 <div class="omfetrab" :class="['s' + size, 'w' + width, 'h' + height, { asDrawer, asWindow }]" :style="{ maxHeight: maxHeight ? maxHeight + 'px' : undefined }">
-	<input ref="searchEl" :value="q" class="search" data-prevent-emoji-insert :class="{ filled: q != null && q != '' }" :placeholder="i18n.ts.search" type="search" @input="input()" @paste.stop="paste" @keydown.stop.prevent.enter="onEnter">
-	<div ref="emojisEl" class="emojis">
+	<input ref="searchEl" :value="q" class="search" data-prevent-emoji-insert :class="{ filled: q != null && q != '' }" :placeholder="i18n.ts.search" type="search" autocapitalize="off" @input="input()" @paste.stop="paste" @keydown.stop.prevent.enter="onEnter">
+	<!-- FirefoxのTabフォーカスが想定外の挙動となるためtabindex="-1"を追加 https://github.com/misskey-dev/misskey/issues/10744 -->
+	<div ref="emojisEl" class="emojis" tabindex="-1">
 		<section class="result">
 			<div v-if="searchResultCustom.length > 0" class="body">
 				<button
@@ -94,15 +100,15 @@
 import { ref, shallowRef, computed, watch, onMounted } from 'vue';
 import * as Misskey from 'misskey-js';
 import XSection from '@/components/MkEmojiPicker.section.vue';
-import { emojilist, emojiCharByCategory, UnicodeEmojiDef, unicodeEmojiCategories as categories, getEmojiName } from '@/scripts/emojilist';
+import { emojilist, emojiCharByCategory, UnicodeEmojiDef, unicodeEmojiCategories as categories, getEmojiName } from '@/scripts/emojilist.js';
 import MkRippleEffect from '@/components/MkRippleEffect.vue';
-import * as os from '@/os';
-import { isTouchUsing } from '@/scripts/touch';
-import { deviceKind } from '@/scripts/device-kind';
-import { i18n } from '@/i18n';
-import { defaultStore } from '@/store';
-import { customEmojiCategories, customEmojis } from '@/custom-emojis';
-import { $i } from '@/account';
+import * as os from '@/os.js';
+import { isTouchUsing } from '@/scripts/touch.js';
+import { deviceKind } from '@/scripts/device-kind.js';
+import { i18n } from '@/i18n.js';
+import { defaultStore } from '@/store.js';
+import { customEmojiCategories, customEmojis, customEmojisMap } from '@/custom-emojis.js';
+import { $i } from '@/account.js';
 
 const props = withDefaults(defineProps<{
 	showPinned?: boolean;
@@ -150,7 +156,7 @@ watch(q, () => {
 	const newQ = q.value.replace(/:/g, '').toLowerCase();
 
 	const searchCustom = () => {
-		const max = 8;
+		const max = 100;
 		const emojis = customEmojis.value;
 		const matches = new Set<Misskey.entities.CustomEmoji>();
 
@@ -213,7 +219,7 @@ watch(q, () => {
 	};
 
 	const searchUnicode = () => {
-		const max = 8;
+		const max = 100;
 		const emojis = emojilist;
 		const matches = new Set<UnicodeEmojiDef>();
 
@@ -223,7 +229,6 @@ watch(q, () => {
 		if (newQ.includes(' ')) { // AND検索
 			const keywords = newQ.split(' ');
 
-			// 名前にキーワードが含まれている
 			for (const emoji of emojis) {
 				if (keywords.every(keyword => emoji.name.includes(keyword))) {
 					matches.add(emoji);
@@ -232,11 +237,12 @@ watch(q, () => {
 			}
 			if (matches.size >= max) return matches;
 
-			// 名前またはエイリアスにキーワードが含まれている
-			for (const emoji of emojis) {
-				if (keywords.every(keyword => emoji.name.includes(keyword) || emoji.keywords.some(alias => alias.includes(keyword)))) {
-					matches.add(emoji);
-					if (matches.size >= max) break;
+			for (const index of Object.values(defaultStore.state.additionalUnicodeEmojiIndexes)) {
+				for (const emoji of emojis) {
+					if (keywords.every(keyword => index[emoji.char].some(k => k.includes(keyword)))) {
+						matches.add(emoji);
+						if (matches.size >= max) break;
+					}
 				}
 			}
 		} else {
@@ -248,13 +254,14 @@ watch(q, () => {
 			}
 			if (matches.size >= max) return matches;
 
-			for (const emoji of emojis) {
-				if (emoji.keywords.some(keyword => keyword.startsWith(newQ))) {
-					matches.add(emoji);
-					if (matches.size >= max) break;
+			for (const index of Object.values(defaultStore.state.additionalUnicodeEmojiIndexes)) {
+				for (const emoji of emojis) {
+					if (index[emoji.char].some(k => k.startsWith(newQ))) {
+						matches.add(emoji);
+						if (matches.size >= max) break;
+					}
 				}
 			}
-			if (matches.size >= max) return matches;
 
 			for (const emoji of emojis) {
 				if (emoji.name.includes(newQ)) {
@@ -264,10 +271,12 @@ watch(q, () => {
 			}
 			if (matches.size >= max) return matches;
 
-			for (const emoji of emojis) {
-				if (emoji.keywords.some(keyword => keyword.includes(newQ))) {
-					matches.add(emoji);
-					if (matches.size >= max) break;
+			for (const index of Object.values(defaultStore.state.additionalUnicodeEmojiIndexes)) {
+				for (const emoji of emojis) {
+					if (index[emoji.char].some(k => k.includes(newQ))) {
+						matches.add(emoji);
+						if (matches.size >= max) break;
+					}
 				}
 			}
 		}
@@ -352,7 +361,7 @@ function done(query?: string): boolean | void {
 	if (query == null || typeof query !== 'string') return;
 
 	const q2 = query.replace(/:/g, '');
-	const exactMatchCustom = customEmojis.value.find(emoji => emoji.name === q2);
+	const exactMatchCustom = customEmojisMap.get(q2);
 	if (exactMatchCustom) {
 		chosen(exactMatchCustom);
 		return true;
@@ -606,6 +615,8 @@ defineExpose({
 						height: 1.25em;
 						vertical-align: -.25em;
 						pointer-events: none;
+						width: 100%;
+						object-fit: contain;
 					}
 				}
 			}
